@@ -1,0 +1,8 @@
+https://crypto.com/cdn-cgi/trace
+https://web.crypto.com/api/proxy/private/app/user/withdrawal_lock
+https://web.crypto.com/api/proxy/private/app/intercom/user_hash_info?platform=cdc_web
+https://web.crypto.com/api/proxy/private/app/crypto_wallets/transactions?count=50
+https://alfred-gateway.crypto.com/user/token
+https://0fyr5zwm29g2.statuspage.io/api/v2/status.json
+https://web.crypto.com/api/proxy/private/app/passkeys
+https://web.crypto.com/api/proxy/private/app/v1/travel-rule/deposits/conditions
