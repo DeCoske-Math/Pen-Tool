@@ -11,64 +11,55 @@ Web File Exploit Test Tool
 import os
 import requests
 from datetime import datetime
+import re
 
+def sanitize_filename(url):
+    return re.sub(r'[<>:"/\\|?*\n]', '_', url)  # Replace illegal filename characters
 
 def write_size_limited(file, data):
     max_size = 1024 ** 3  # 1GB in bytes
     if len(data.encode('utf-8')) < max_size:
         file.write(data)
     else:
-        print("Data exceeds 1GB and will not be written.")
-        file.write("Data exceeds 1GB and will not be written.")
-
+        file.write("Data exceeds 1GB and will not be written.\n")
 
 def processURL(url, index, log):
-    # put all responses in dedicated folder and inside of that folder index numbers match the urls.txt line numbers
-    path = "responses/" + str(index)
+    url = url.strip()  # Remove leading/trailing spaces or newlines
+    filename = sanitize_filename(url) + ".txt"  
 
-    # skip url if folder of index exists, delete/move folder to refresh data
-    if not os.path.exists(path):
+    if os.path.exists(filename):  # Skip if file already exists
+        print(f"{'Skipping:':20} {index} {url}")
+        return
 
-        os.makedirs(path)
+    try:
+        response = requests.get(url, timeout=4)
+    except Exception as e:
+        print(f"{(type(e).__name__+':'):20} {index} {url}")
+        log.write(f"{datetime.now()}\t{index}\t0\t{type(e).__name__}\t{url}\n")
+        return
 
-        try:
-            response = requests.get(url, timeout=4)
-        except Exception as e:
-            print(f"{(type(e).__name__+':'):20}" + str(index) + " " + url, end="")
-            log.write(str(datetime.now()) + "\t" + str(index) + "\t" + "0" + "\t" + type(e).__name__ + "\t" + url)
-            return
+    print(f"{'Processing:':20} {index} {response.status_code} {response.headers.get('Content-Type', 'Unknown')} {url}")
+    log.write(f"{datetime.now()}\t{index}\t{response.status_code}\t{response.headers.get('Content-Type', 'Unknown')}\t{url}\n")
 
-        print(f"{'Processing:':20}" + str(index) + " " + str(response.status_code) + " " + response.headers.get(
-            'Content-Type', 'Unknown') + " " + url, end="")
-        log.write(
-            str(datetime.now()) + "\t" + str(index) + "\t" + str(response.status_code) + "\t" + response.headers.get(
-                'Content-Type', 'Unknown') + "\t" + url)
+    with open(filename, "w") as file:
+        file.write(f"URL: {url}\n")
+        file.write(f"Status Code: {response.status_code}\n")
+        file.write(f"Content-Type: {response.headers.get('Content-Type', 'Unknown')}\n\n")
+        file.write("Headers:\n")
+        write_size_limited(file, str(response.headers) + "\n\n")
+        file.write("Response Body:\n")
+        write_size_limited(file, response.text)
 
-        with open(path + "/content-type.txt", "w") as file:
-            write_size_limited(file, response.headers.get('Content-Type', 'Unknown'))
-
-        with open(path + "/response.txt", "w") as file:
-            write_size_limited(file, response.text)
-
-        with open(path + "/headers.txt", "w") as file:
-            write_size_limited(file, str(response.headers))
-
-        with open(path + "/status.txt", "w") as file:
-            write_size_limited(file, str(response.status_code))
-    else:
-        print(f"{'Skipping:':20}" + str(index) + " " + url, end="")
+with open("urls.txt", "r") as url_file, open("log.tsv", "a") as log:
+    for index, line in enumerate(url_file, start=1):
+        processURL(line, index, log)
+    log.write("\n")  # Fix: Writing newline before log file closes
 
 
-url_file = open("urls.txt", "r")
-log = open("log.tsv", "a")
-index = 1
-
-# index matches line number in urls.txt
-for line in url_file:
-    processURL(line, index, log)
-    index += 1
-
-log.write("\n")
-
-
-
+    """
+    	•	Before making a request, the script checks if a file with the URL’s sanitized name already exists:
+        
+    if os.path.exists(filename):  # Skip if file already exists
+    print(f"{'Skipping:':20} {index} {url}")
+    return
+    """
