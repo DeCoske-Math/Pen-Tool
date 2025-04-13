@@ -1,4 +1,4 @@
 import cloudscraper
 scraper = cloudscraper.create_scraper()
-r = scraper.get("https://uc.crypto.com/v1/publ")
+r = scraper.get("URL you want")
 print(r.text)
